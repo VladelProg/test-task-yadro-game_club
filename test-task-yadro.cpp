@@ -279,7 +279,7 @@ struct ClientInfo {
             addErrorEvent(event.time, "ICanWaitNoLonger!");
             return;
         }
-    
+        //std::cout << waitingQueue.size() << "\n";
         // Проверяем длину очереди
         if (waitingQueue.size() >= static_cast<size_t>(tableCount)) {
             // Клиент уходит
@@ -555,16 +555,15 @@ void parseInputFile(const std::string& filename,
     //std::cout << "Reading input file..." << std::endl;
 }
 
-int main() {
+int main(int argc, char* argv[]) {
 
-    std::cout << "Welcome to the Club System!" << std::endl;
-    /*
-    if (argc != 2) {
-        std::cerr << "Usage: " << argv[0] << " <input_file>" << std::endl;
-        return 1;
+    //std::cout << "Welcome to the Club System!" << std::endl;
+    if (argc == 0)// если передаем аргументы, то argc будет больше 1(в зависимости от кол-ва аргументов)
+    {
+        std::cout << "Not arguments" << std::endl;
     }
-*/
-    std::string filename = "test.txt";
+    
+    std::string filename = argv[1];
     int tableCount = 0;
     Time openTime, closeTime;
     int hourlyRate = 0;
