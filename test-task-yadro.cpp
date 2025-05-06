@@ -19,14 +19,14 @@ struct Time {
 
     static Time fromString(const std::string& timeStr) {
         if (timeStr.length() != 5 || timeStr[2] != ':') {
-            throw std::invalid_argument("Invalid time format");
+            std::cout <<"Invalid time format";
         }
 
         int h = std::stoi(timeStr.substr(0, 2));
         int m = std::stoi(timeStr.substr(3, 2));
 
         if (h < 0 || h > 23 || m < 0 || m > 59) {
-            throw std::invalid_argument("Invalid time value");
+            std::cout << "Invalid time value";
         }
 
         return Time(h, m);
@@ -186,8 +186,9 @@ struct ClientInfo {
 
     void handleClientArrival(const Event& event, bool isClubOpen) {
         std::string clientName = event.data[0];
-
+        //std::cout << "Hello";
         // Проверяем, существует ли уже такой клиент
+        //auto [it, inserted] = clients.insert({clientName, ClientInfo(clientName)});
         auto it = clients.find(clientName);
         if (it != clients.end()) {
             addProcessedEvent(event);
@@ -214,6 +215,7 @@ struct ClientInfo {
 
         // Проверяем корректность номера стола
         if (desiredTable < 0 || desiredTable >= tableCount) {
+            addProcessedEvent(event);
             addErrorEvent(event.time, "PlaceIsBusy"); // произвольная ошибка
             return;
         }
@@ -221,6 +223,7 @@ struct ClientInfo {
         // Проверяем, существует ли такой клиент
         auto clientIt = clients.find(clientName);
         if (clientIt == clients.end()) {
+            addProcessedEvent(event);
             addErrorEvent(event.time, "ClientUnknown");
             return;
         }
@@ -252,16 +255,16 @@ struct ClientInfo {
 
     void handleClientWaiting(Event event) {
         std::string clientName = event.data[0];
-
+    
         // Проверяем, существует ли такой клиент
         auto clientIt = clients.find(clientName);
         if (clientIt == clients.end()) {
+            addProcessedEvent(event); // <-- Выводим событие
             addErrorEvent(event.time, "ClientUnknown");
             return;
         }
-
         ClientInfo& client = clientIt->second;
-
+    
         // Проверяем, есть ли свободные места
         bool hasFreeTable = false;
         for (int i = 0; i < tableCount; ++i) {
@@ -270,27 +273,30 @@ struct ClientInfo {
                 break;
             }
         }
-
+    
         if (hasFreeTable) {
+            addProcessedEvent(event);
             addErrorEvent(event.time, "ICanWaitNoLonger!");
             return;
         }
-
+    
         // Проверяем длину очереди
-        if (waitingQueue.size() >= tableCount) {
+        if (waitingQueue.size() >= static_cast<size_t>(tableCount)) {
             // Клиент уходит
             Event leaveEvent;
             leaveEvent.time = event.time;
             leaveEvent.id = 11;
             leaveEvent.data = {clientName};
-            addProcessedEvent(leaveEvent);
-
-            // Удаляем клиента из системы
-            clients.erase(clientName);
-        } else {
-            waitingQueue.push(clientName);
+    
             addProcessedEvent(event);
+            addProcessedEvent(leaveEvent); 
+    
+            clients.erase(clientName); // Удаляем клиента из системы
+            return;
         }
+    
+        waitingQueue.push(clientName);
+        addProcessedEvent(event);
     }
 
     void handleClientLeaving(Event event) {
@@ -299,6 +305,7 @@ struct ClientInfo {
         // Проверяем, существует ли такой клиент
         auto clientIt = clients.find(clientName);
         if (clientIt == clients.end()) {
+            addProcessedEvent(event);
             addErrorEvent(event.time, "ClientUnknown");
             return;
         }
@@ -417,7 +424,7 @@ void parseInputFile(const std::string& filename,
                    std::string& errorLine) {
     std::ifstream file(filename);
     if (!file.is_open()) {
-        throw std::runtime_error("Cannot open file: " + filename);
+        std:: cout << "Cannot open file: " << filename;
     }
 
     std::string line;
@@ -425,7 +432,7 @@ void parseInputFile(const std::string& filename,
     
     // Чтение количества столов
     if (!std::getline(file, line)) {
-        throw std::runtime_error("Failed to read number of tables");
+        std:: cout << "Failed to read number of tables";
     }
     
     lineNumber++;
@@ -433,16 +440,16 @@ void parseInputFile(const std::string& filename,
         tableCount = std::stoi(line);
         if (tableCount <= 0) {
             errorLine = line;
-            throw std::runtime_error("Invalid number of tables on line " + std::to_string(lineNumber));
+            std:: cout << "Invalid number of tables on line " << std::to_string(lineNumber);
         }
     } catch (...) {
         errorLine = line;
-        throw std::runtime_error("Invalid number of tables on line " + std::to_string(lineNumber));
+        std:: cout << "Invalid number of tables on line " << std::to_string(lineNumber);
     }
     
     // Чтение времени работы
     if (!std::getline(file, line)) {
-        throw std::runtime_error("Failed to read opening/closing time");
+        std:: cout << "Failed to read opening/closing time";
     }
     
     lineNumber++;
@@ -450,7 +457,7 @@ void parseInputFile(const std::string& filename,
     std::string openTimeStr, closeTimeStr;
     if (!(timeStream >> openTimeStr >> closeTimeStr)) {
         errorLine = line;
-        throw std::runtime_error("Invalid time format on line " + std::to_string(lineNumber));
+        std:: cout << "Invalid time format on line " << std::to_string(lineNumber);
     }
 
     try {
@@ -458,41 +465,41 @@ void parseInputFile(const std::string& filename,
         closeTime = Time::fromString(closeTimeStr);
     } catch (...) {
         errorLine = line;
-        throw std::runtime_error("Invalid time format on line " + std::to_string(lineNumber));
+        std:: cout << "Invalid time format on line " << std::to_string(lineNumber);
     }
 
     if (openTime >= closeTime) {
         errorLine = line;
-        throw std::runtime_error("Opening time must be earlier than closing time on line " + std::to_string(lineNumber));
+        std:: cout << "Opening time must be earlier than closing time on line " << std::to_string(lineNumber);
     }
 
     // Чтение стоимости часа
     if (!std::getline(file, line)) {
-        throw std::runtime_error("Failed to read hourly rate");
+        std:: cout << "Failed to read hourly rate";
     }
     lineNumber++;
     try {
         hourlyRate = std::stoi(line);
         if (hourlyRate <= 0) {
             errorLine = line;
-            throw std::runtime_error("Hourly rate must be positive on line " + std::to_string(lineNumber));
+            std:: cout << "Hourly rate must be positive on line " << std::to_string(lineNumber);
         }
     } catch (...) {
         errorLine = line;
-        throw std::runtime_error("Invalid hourly rate on line " + std::to_string(lineNumber));
+        std:: cout << "Invalid hourly rate on line " << std::to_string(lineNumber);
     }
 
     // Чтение событий
     while (std::getline(file, line)) {
         lineNumber++;
         if (line.empty()) continue;
-
+        //std:: cout << "Hello";
         std::istringstream eventStream(line);
         std::string timeStr;
         int eventId;
         if (!(eventStream >> timeStr >> eventId)) {
             errorLine = line;
-            throw std::runtime_error("Invalid event format on line " + std::to_string(lineNumber));
+            std:: cout << "Invalid event format on line " << std::to_string(lineNumber);
         }
 
         try {
@@ -511,38 +518,38 @@ void parseInputFile(const std::string& filename,
             if (eventId == 1) { // Клиент пришел
                 if (event.data.size() != 1 || !isValidName(event.data[0])) {
                     errorLine = line;
-                    throw std::runtime_error("Invalid client arrival event on line " + std::to_string(lineNumber));
+                    std:: cout << "Invalid client arrival event on line " << std::to_string(lineNumber);
                 }
             
             } else if (eventId == 2) { // Клиент сел за стол
                 if (event.data.size() != 2 || !isValidName(event.data[0])) {
                     errorLine = line;
-                    throw std::runtime_error("Invalid client sit down event on line " + std::to_string(lineNumber));
+                    std:: cout << "Invalid client sit down event on line " << std::to_string(lineNumber);
                 }
                 // Номер стола проверяется позже, так как мы не знаем общее количество столов на этом этапе
             } else if (eventId == 3) { // Клиент ожидает
                 if (event.data.size() != 1 || !isValidName(event.data[0])) {
                     errorLine = line;
-                    throw std::runtime_error("Invalid client wait event on line " + std::to_string(lineNumber));
+                    std:: cout << "Invalid client wait event on line " << std::to_string(lineNumber);
                 }
             } else if (eventId == 4) { // Клиент ушел
                 if (event.data.size() != 1 || !isValidName(event.data[0])) {
                     errorLine = line;
-                    throw std::runtime_error("Invalid client leave event on line " + std::to_string(lineNumber));
+                    std:: cout << "Invalid client leave event on line " << std::to_string(lineNumber);
                 }
             } else if (eventId == 11 || eventId == 12) { // Исходящие события
                 // Эти события генерируются программой, поэтому они не должны встречаться во входном файле
                 errorLine = line;
-                throw std::runtime_error("Outgoing event found in input on line " + std::to_string(lineNumber));
+                std:: cout << "Outgoing event found in input on line " << std::to_string(lineNumber);
             } else {
                 errorLine = line;
-                throw std::runtime_error("Unknown event type on line " + std::to_string(lineNumber));
+                std:: cout << "Unknown event type on line " << std::to_string(lineNumber);
             }
 
             events.push_back(event);
         } catch (const std::exception& e) {
             errorLine = line;
-            throw std::runtime_error("Error parsing event on line " + std::to_string(lineNumber) + ": " + e.what());
+            std:: cout << "Error parsing event on line " << std::to_string(lineNumber) + ": " << e.what();
         }
     }
     //std::cout << "Reading input file..." << std::endl;
