@@ -67,7 +67,7 @@ struct Time {
         return hours == other.hours && minutes == other.minutes;
     }
 
-    // Вычисляет разницу в минутах между двумя временными точками
+    // разница в минутах
     int minutesDifference(const Time& other) const {
         int totalMinutesThis = hours * 60 + minutes;
         int totalMinutesOther = other.hours * 60 + other.minutes;
@@ -87,7 +87,7 @@ struct Event {
             return time < other.time;
         if (id != other.id)
             return id < other.id;
-        return false; // события с одинаковым временем и ID считаются равными
+        return false;
     }
 };
 
@@ -316,7 +316,7 @@ struct ClientInfo {
         if (client.currentTable != -1) {
             // Обновляем время использования стола
             int minutesUsed = event.time.minutesDifference(client.sessionStart);
-            int hoursBilled = (minutesUsed + 59) / 60; // округляем вверх
+            int hoursBilled = (minutesUsed + 59) / 60; // округление
             tables[client.currentTable].totalMinutes += minutesUsed;
             tables[client.currentTable].revenue += hoursBilled * hourlyRate;
             client.currentTable = -1;
@@ -335,7 +335,7 @@ struct ClientInfo {
             Event sitDownEvent;
             sitDownEvent.time = event.time;
             sitDownEvent.id = 12;
-            sitDownEvent.data = {waitingClient, ""}; // Номер стола будет определен позже
+            sitDownEvent.data = {waitingClient, ""};
 
             // Находим свободный стол
             int freeTable = -1;
@@ -347,10 +347,9 @@ struct ClientInfo {
             }
 
             if (freeTable != -1) {
-                sitDownEvent.data.push_back(std::to_string(freeTable + 1)); // используем номер стола (начинается с 1)
+                sitDownEvent.data.push_back(std::to_string(freeTable + 1)); // нумерация с 1
                 addProcessedEvent(sitDownEvent);
 
-                // Обновляем информацию о клиенте
                 clients[waitingClient].currentTable = freeTable;
                 clients[waitingClient].sessionStart = event.time;
             }
@@ -358,7 +357,6 @@ struct ClientInfo {
     }
 
     void handleEndOfDay() {
-        // Собираем имена всех клиентов, чтобы отсортировать их
         std::vector<std::string> clientNames;
         for (const auto& pair : clients) {
             clientNames.push_back(pair.first);
@@ -378,14 +376,13 @@ struct ClientInfo {
             // Если клиент сидел за столом, обновляем время использования
             if (clients[clientName].currentTable != -1) {
                 int minutesUsed = closeTime.minutesDifference(clients[clientName].sessionStart);
-                int hoursBilled = (minutesUsed + 59) / 60; // округляем вверх
+                int hoursBilled = (minutesUsed + 59) / 60; // вверх
                 int tableIndex = clients[clientName].currentTable;
                 tables[tableIndex].totalMinutes += minutesUsed;
                 tables[tableIndex].revenue += hoursBilled * hourlyRate;
             }
         }
     
-        // Очищаем список клиентов
         clients.clear();
     }
 
@@ -514,7 +511,6 @@ void parseInputFile(const std::string& filename,
                 event.data.push_back(token);
             }
 
-            // Проверка формата данных события
             if (eventId == 1) { // Клиент пришел
                 if (event.data.size() != 1 || !isValidName(event.data[0])) {
                     errorLine = line;
@@ -526,7 +522,6 @@ void parseInputFile(const std::string& filename,
                     errorLine = line;
                     std:: cout << "Invalid client sit down event on line " << std::to_string(lineNumber);
                 }
-                // Номер стола проверяется позже, так как мы не знаем общее количество столов на этом этапе
             } else if (eventId == 3) { // Клиент ожидает
                 if (event.data.size() != 1 || !isValidName(event.data[0])) {
                     errorLine = line;
@@ -538,7 +533,6 @@ void parseInputFile(const std::string& filename,
                     std:: cout << "Invalid client leave event on line " << std::to_string(lineNumber);
                 }
             } else if (eventId == 11 || eventId == 12) { // Исходящие события
-                // Эти события генерируются программой, поэтому они не должны встречаться во входном файле
                 errorLine = line;
                 std:: cout << "Outgoing event found in input on line " << std::to_string(lineNumber);
             } else {
@@ -558,7 +552,7 @@ void parseInputFile(const std::string& filename,
 int main(int argc, char* argv[]) {
 
     //std::cout << "Welcome to the Club System!" << std::endl;
-    if (argc == 0)// если передаем аргументы, то argc будет больше 1(в зависимости от кол-ва аргументов)
+    if (argc == 0)
     {
         std::cout << "Not arguments" << std::endl;
     }
